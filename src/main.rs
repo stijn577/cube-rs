@@ -1,10 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
-use functions::CubeProjectParser;
+use functions::{CubeProjectParser, MxProjectDataRequest};
 use std::path::PathBuf;
 
-#[macro_use]
-mod macros;
+mod error;
 mod functions;
 
 /// cube is a helper for generating Rust bindings for ST Cube HAL C code. Use cube --help to learn more.
@@ -21,8 +20,14 @@ fn main() -> Result<()> {
 
     let project = CubeProjectParser::new(args.name, args.cube_project.clone())?;
     project.create_sys_crate()?;
-    project.makefile_variable("C_SOURCES")?;
-    project.makefile_variable("C_INCLUDES")?;
+
+    let sources = project.get_entry(MxProjectDataRequest::Sources)?;
+    let headers = project.get_entry(MxProjectDataRequest::Headers)?;
+    let includes = project.get_entry(MxProjectDataRequest::Includes)?;
+    let defines = project.get_entry(MxProjectDataRequest::Defines)?;
+
+    project.create_build_rs(&sources, &headers, &includes, &defines)?;
+    project.create_wrapper_h(&headers)?;
 
     Ok(())
 }
